@@ -1,0 +1,1 @@
+web: npx prisma generate && node index.js 
