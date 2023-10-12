@@ -119,7 +119,10 @@ async function login(req, res) {
 
   async function getList(req, res){
     console.log(req.body)
-    
+
+    console.log(req.body.accountData)
+    console.log(req.body.tokenTransfers)
+
 
     return res.status(200).json({error: 'sdsdadasdsa'})
 
