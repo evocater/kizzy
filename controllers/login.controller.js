@@ -47,7 +47,23 @@ function decrypt(encryptedObj) {
 async function getUser(userID) {
 
       const user = await prisma.user.findUnique({
-        where: { ID: userID }
+        where: { ID: userID },
+        select:{
+          googleID: true,
+          createdAt: true,
+          updatedAt: true,
+          balance: true,
+          status: true,
+          email: true,
+          familyName: true,
+          name: true,
+          avatar: true,
+          wallet:{
+            select:{
+              walletAddress:true
+            }
+          }
+        }
       });
   
       return user;
@@ -63,6 +79,7 @@ async function login(req, res) {
       const { error } = loginSchema.validate(req.body, { abortEarly: true });
   
       if (error) {
+      
         return res.status(500).json({ error: "Invalid Login Request" });
       }
       res.set('Connection', 'keep-alive');
