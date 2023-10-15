@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 const Joi = require("joi");
 const e = require("cors");
 const axios = require("axios")
-const { getAssociatedTokenAddressSync } = require('@solana/spl-token');
+const { getAssociatedTokenAddressSync, getAccount, getMint } = require('@solana/spl-token');
 const EventEmitter = require("events");
 const myEmitter = new EventEmitter();
 const {
@@ -45,6 +45,26 @@ function decrypt(encryptedObj) {
   return new Uint8Array(decrypted);
 }
 // Example usage:
+
+async function getTokenBalanceSpl(connection, wallet) {
+  try{
+    const tokenmint = new PublicKey("B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7")
+    const owner = new PublicKey(wallet)
+    const address = getAssociatedTokenAddressSync(tokenmint, owner)
+  
+    const tokenAccount = new PublicKey(address.toBase58())
+    
+    const info = await getAccount(connection, tokenAccount);
+    const amount = Number(info.amount);
+    const mint = await getMint(connection, info.mint);
+    const balance = amount / (10 ** mint.decimals);
+    return balance;
+  }catch(err){
+    return 0
+  }
+
+ 
+}
 
 
 
@@ -92,12 +112,15 @@ async function getUser(userID) {
       );
       const data = response.data;
       if(data){
+        
         await prisma.wallet.update({
           where:{walletAddress: wallet},
           data:{
             listen: true
           }
         })
+
+
 
 
       }
@@ -172,10 +195,9 @@ async function login(req, res) {
   async function getList(req, res){
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
       
-        req.body[0].tokenTransfers.forEach((item, index) => {
+        req.body[0].tokenTransfers.forEach(async (item, index) => {
           if(item.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
-            console.log(item.toUserAccount)
-            console.log(item.tokenAmount)
+      
             myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount}]);
           }
         });
@@ -288,8 +310,9 @@ async function login(req, res) {
       const result = await getUser(id);
       if(!result.wallet.listen){
         await createWebhook(result.wallet.walletAddress)
-
       }
+
+      result['kizz'] = await getTokenBalanceSpl(connection, result.wallet.walletAddress)
 
       return res.status(200).json(result);
     } catch (err) {
