@@ -174,6 +174,8 @@ async function login(req, res) {
       
         req.body[0].tokenTransfers.forEach((item, index) => {
           if(item.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
+            console.log(item.toUserAccount)
+            console.log(item.tokenAmount)
             myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount}]);
           }
         });
