@@ -199,7 +199,7 @@ async function login(req, res) {
           if(req.body[0].tokenTransfers[0].mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
 
             const user = await prisma.wallet.findUnique({
-              where:{walletAddress: item.toUserAccount},
+              where:{walletAddress: req.body[0].tokenTransfers[0].toUserAccount},
               select:{
                 user:{
                   select:{
