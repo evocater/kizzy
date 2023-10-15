@@ -38,7 +38,7 @@ model Wallet {
 model Log {
   ID        Int      @id @default(autoincrement())
   userID    Int
-  total        Decimal?  @db.Decimal(10, 2)
+  total     Decimal?  @db.Decimal(10, 2)
   type      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,6 +51,7 @@ model Log {
 
 
 
+
 model Transaction {
   ID        Int      @id @default(autoincrement())
   txnID     String   @unique @default(uuid())
@@ -59,8 +60,10 @@ model Transaction {
   updatedAt DateTime
   total     Decimal? @db.Decimal(10, 2)
   wallet    String?
-  type    String?
+  type      String
   timestamp Int?
   solscan   String?
   user      User     @relation(fields: [userID], references: [ID])
+
+  @@index([userID])
 }
