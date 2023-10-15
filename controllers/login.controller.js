@@ -195,7 +195,7 @@ async function login(req, res) {
 
   async function getList(req, res){
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
-      console.log(req.body)
+      
       
           if(req.body[0].tokenTransfers[0].mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
 
@@ -287,7 +287,6 @@ async function login(req, res) {
 
         total: TRANSFER_AMOUNT,
         wallet: data[0].toWallet,
-        status: 'Confirmed',
         type: "Deposit",
         updatedAt: new Date(),
         solscan: signature,
