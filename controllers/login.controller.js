@@ -173,12 +173,8 @@ async function login(req, res) {
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
       
         req.body[0].tokenTransfers.forEach((item, index) => {
-          const mint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
-          const owner = new PublicKey(item.toUserAccount)
-          const address = getAssociatedTokenAddressSync(mint, owner)
-          if(address == item.toTokenAccount){
+          if(item.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
             myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount}]);
-
           }
         });
     } else {
@@ -198,9 +194,15 @@ async function login(req, res) {
     const FROM_KEYPAIR = Keypair.fromSecretKey(
       new Uint8Array(JSON.parse(process.env.SECRET))
     );
+
   
     const DESTINATION_WALLET = data.toWallet;
     const MINT_ADDRESS = "B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7";
+
+    console.log(DESTINATION_WALLET)
+
+    console.log(new PublicKey(MINT_ADDRESS))
+    console.log(new PublicKey(DESTINATION_WALLET))
   
     console.log(`Setting Up Transaction check Token Account`);
     let sourceAccount = await getOrCreateAssociatedTokenAccount(
