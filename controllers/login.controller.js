@@ -210,7 +210,7 @@ async function login(req, res) {
             })
       
             myEmitter.emit('sendKizz', [{ toWallet: req.body[0].tokenTransfers[0].toUserAccount, amount:req.body[0].tokenTransfers[0].tokenAmount, user: user.ID}]);
-          }
+          } 
        
     } else {
         console.error('Token Transfer is not available or not an array');
