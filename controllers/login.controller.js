@@ -100,7 +100,7 @@ async function getUser(userID) {
       const response = await axios.post(
         "https://api.helius.xyz/v0/webhooks?api-key=5e7cbda8-653e-49de-ad69-a1a00a743a70",
         {
-          "webhookURL": "https://web-production-7fbd7.up.railway.app/api/v1/getList",
+          "webhookURL": "https://web-production-603f.up.railway.app/api/v1/getList",
           "accountAddresses": [wallet],
           "transactionTypes": ["DEPOSIT", "TRANSFER"],
           "webhookType": "enhanced"
