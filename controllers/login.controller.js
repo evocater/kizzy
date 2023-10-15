@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 const Joi = require("joi");
 const e = require("cors");
 const axios = require("axios")
+const { getAssociatedTokenAddressSync } = require('@solana/spl-token');
 const {
   Connection,
   Keypair,
@@ -167,30 +168,36 @@ async function login(req, res) {
 
 
   async function getList(req, res){
-    console.log(req.body);
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
+      
         req.body[0].tokenTransfers.forEach((item, index) => {
-            console.log(`Item ${index}:`, JSON.stringify(item, null, 2));
+          const mint = new PublicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v")
+          const owner = new PublicKey(item.toUserAccount)
+          const address = getAssociatedTokenAddressSync(mint, owner)
+          if(address == item.toTokenAccount){
+            myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount}]);
+
+          }
         });
     } else {
-        console.error('accountData is not available or not an array');
+        console.error('Token Transfer is not available or not an array');
     }
-    return res.status(200).json({error: 'sdsdadasdsa'})
+    return res.status(200).json({Message: 'Success!'})
 
 
   }
 
 
-  async function transferSPL(amount, wallet){
+  myEmitter.on("sendKizz", async (data) => {
     
   try{
 
-    const TRANSFER_AMOUNT = Number(amount);
+    const TRANSFER_AMOUNT = Number(data.amount);
     const FROM_KEYPAIR = Keypair.fromSecretKey(
       new Uint8Array(JSON.parse(process.env.SECRET))
     );
   
-    const DESTINATION_WALLET = wallet;
+    const DESTINATION_WALLET = data.toWallet;
     const MINT_ADDRESS = "B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7";
   
     console.log(`Setting Up Transaction check Token Account`);
@@ -237,8 +244,15 @@ async function login(req, res) {
     }catch(err){
       console.log(err)
     }
-  }
+  })
 
+  async function getNumberDecimals(mintAddress) {
+  const info = await connection.getParsedAccountInfo(
+    new PublicKey(mintAddress)
+  );
+  const result = (info.value?.data).parsed.info.decimals;
+  return result;
+}
   
   async function my(req, res) {
     try {
