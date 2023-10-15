@@ -30,6 +30,7 @@ model Wallet {
   iv            String?
   encryptedData String?
   userID        Int?
+  listen        Boolean?  @default(false)
   user          User?  
   }
 

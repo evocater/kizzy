@@ -3,6 +3,7 @@ const { PrismaClient } = require(`@prisma/client`);
 const prisma = new PrismaClient();
 const Joi = require("joi");
 const e = require("cors");
+const axios = require("axios")
 const {
   Connection,
   Keypair,
@@ -60,7 +61,8 @@ async function getUser(userID) {
           avatar: true,
           wallet:{
             select:{
-              walletAddress:true
+              walletAddress:true,
+              listen:true
             }
           }
         }
@@ -69,7 +71,37 @@ async function getUser(userID) {
       return user;
   }
   
+  async function createWebhook(wallet) {
+    try {
+      const response = await axios.post(
+        "https://api.helius.xyz/v0/webhooks?api-key=5e7cbda8-653e-49de-ad69-a1a00a743a70",
+        {
+          "webhookURL": "https://web-production-7fbd7.up.railway.app/api/v1/getList",
+          "accountAddresses": [wallet],
+          "transactionTypes": ["DEPOSIT", "TRANSFER"],
+          "webhookType": "enhanced"
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      const data = response.data;
+      if(data){
+        await prisma.wallet.update({
+          where:{walletAddress: wallet},
+          data:{
+            listen: true
+          }
+        })
 
+
+      }
+    } catch (e) {
+      console.error("error", e);
+    }
+  };
 
 async function login(req, res) {
     try {
@@ -137,8 +169,8 @@ async function login(req, res) {
   async function getList(req, res){
     console.log(req.body)
 
-    console.log(req.body.accountData)
-    console.log(req.body.tokenTransfers)
+    console.log(JSON.stringify(req.body.accountData, null, 2));
+    console.log(JSON.stringify(req.body.tokenTransfers, null, 2));
 
 
     return res.status(200).json({error: 'sdsdadasdsa'})
@@ -235,6 +267,10 @@ async function login(req, res) {
      
   
       const result = await getUser(id);
+      if(!result.wallet.listen){
+        await createWebhook(result.wallet.walletAddress)
+
+      }
 
       return res.status(200).json(result);
     } catch (err) {
