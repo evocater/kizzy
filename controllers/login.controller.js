@@ -171,7 +171,7 @@ async function login(req, res) {
 
     console.log(JSON.stringify(req.body.accountData, null, 2));
     console.log(JSON.stringify(req.body.tokenTransfers, null, 2));
-
+    console.log(JSON.stringify(req.body.tokenTransfers[0], null, 2));
 
     return res.status(200).json({error: 'sdsdadasdsa'})
 
@@ -179,17 +179,17 @@ async function login(req, res) {
   }
 
 
-  async function transferSPL(req, res){
+  async function transferSPL(amount, wallet){
     
   try{
 
-    const TRANSFER_AMOUNT = 1;
+    const TRANSFER_AMOUNT = Number(amount);
     const FROM_KEYPAIR = Keypair.fromSecretKey(
       new Uint8Array(JSON.parse(process.env.SECRET))
     );
   
-    const DESTINATION_WALLET = data[0].wallet;
-    const MINT_ADDRESS = data[0].mint;
+    const DESTINATION_WALLET = wallet;
+    const MINT_ADDRESS = "B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7";
   
     console.log(`Setting Up Transaction check Token Account`);
     let sourceAccount = await getOrCreateAssociatedTokenAccount(
