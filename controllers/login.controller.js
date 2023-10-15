@@ -192,19 +192,16 @@ async function login(req, res) {
     
   try{
 
-    const TRANSFER_AMOUNT = Number(data.amount);
+    const TRANSFER_AMOUNT = Number(data[0].amount);
     const FROM_KEYPAIR = Keypair.fromSecretKey(
       new Uint8Array(JSON.parse(process.env.SECRET))
     );
 
   
-    const DESTINATION_WALLET = data.toWallet;
+    const DESTINATION_WALLET = data[0].toWallet;
     const MINT_ADDRESS = "B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7";
 
-    console.log(DESTINATION_WALLET)
-
-    console.log(new PublicKey(MINT_ADDRESS))
-    console.log(new PublicKey(DESTINATION_WALLET))
+   
   
     console.log(`Setting Up Transaction check Token Account`);
     let sourceAccount = await getOrCreateAssociatedTokenAccount(
