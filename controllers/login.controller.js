@@ -171,7 +171,9 @@ async function login(req, res) {
 
     console.log(JSON.stringify(req.body.accountData, null, 2));
     console.log(JSON.stringify(req.body.tokenTransfers, null, 2));
-    console.log(JSON.stringify(req.body.tokenTransfers[0], null, 2));
+    req.body.accountData.forEach((obj, index) => {
+      console.log(`Object ${index}:`, JSON.stringify(obj, null, 2));
+  });
 
     return res.status(200).json({error: 'sdsdadasdsa'})
 
