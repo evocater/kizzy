@@ -168,8 +168,8 @@ async function login(req, res) {
 
   async function getList(req, res){
     console.log(req.body);
-    if (req.body && req.body[0] && Array.isArray(req.body[0].accountData)) {
-        req.body[0].accountData.forEach((item, index) => {
+    if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
+        req.body[0].tokenTransfers.forEach((item, index) => {
             console.log(`Item ${index}:`, JSON.stringify(item, null, 2));
         });
     } else {
