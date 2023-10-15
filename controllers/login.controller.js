@@ -286,6 +286,7 @@ async function login(req, res) {
         status: 'Confirmed',
         type: "Deposit",
         updatedAt: new Date(),
+        solscan: signature,
         timestamp: moment().unix()
       },
     })
