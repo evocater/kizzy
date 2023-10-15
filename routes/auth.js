@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { login, my, getList} = require("../controllers/login.controller");
+const { login, my, getList, getTransaction} = require("../controllers/login.controller");
 const apicache = require("apicache");
 let cache = apicache.middleware;
 const path = require("path");
@@ -19,6 +19,12 @@ router.get("/my",rateLimit({
   max: 13,
   windowMs: 5000
 }), my);
+
+
+router.get("/transaction",rateLimit({
+  max: 13,
+  windowMs: 5000
+}), getTransaction);
 
 
 module.exports = router;

@@ -197,8 +197,19 @@ async function login(req, res) {
       
         req.body[0].tokenTransfers.forEach(async (item, index) => {
           if(item.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
+
+            const user = await prisma.wallet.findUnique({
+              where:{walletAddress: item.toUserAccount},
+              select:{
+                user:{
+                  select:{
+                    ID:true
+                  }
+                }
+              }
+            })
       
-            myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount}]);
+            myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount, user: user.ID}]);
           }
         });
     } else {
@@ -261,6 +272,24 @@ async function login(req, res) {
     const signature = await sendAndConfirmTransaction(connection, tx, [
       FROM_KEYPAIR,
     ]);
+
+    await prisma.transaction.create({
+      data: {
+        user: {
+          connect: {
+            ID: data[0].user, // connect to existing user by ID
+          },
+        },
+
+        total: TRANSFER_AMOUNT,
+        wallet: data[0].toWallet,
+        status: 'Confirmed',
+        type: "Deposit",
+        updatedAt: new Date(),
+        timestamp: moment().unix()
+      },
+    })
+
     console.log(
       "\x1b[32m", //Green Text
       `   Transaction Success!`,
@@ -325,6 +354,45 @@ async function login(req, res) {
   }
 
 
+  async function getTransaction(req, res){
+    try {
+      let token = req.headers["authorization"];
+  
+      if (!token) {
+        return res.status(500).json({ error: "Please provide valid token!" });
+      }
+  
+      token = token.replace(/^Bearer\s+/, "");
+  
+      jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+          if (!res.headersSent) {
+          return res.status(500).json({
+            success: false,
+            message: "Token is not valid",
+          });
+        }
+
+        console.log(err)
+        } else {
+          id = decoded.ID;
+        }
+      });
+      
+      res.set('Connection', 'keep-alive');
+
+
+      const transactions = await prisma.transaction.findMany({
+        where:{userID: id}
+      })
+
+      return res.status(200).json(transactions)
+     
+    }catch(err){
+      console.log(err)
+    }
+  }
+
 
 
 
@@ -334,5 +402,6 @@ async function login(req, res) {
 module.exports = {
     login,
     my,
-    getList
+    getList,
+    getTransaction
 }
