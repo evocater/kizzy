@@ -196,8 +196,7 @@ async function login(req, res) {
   async function getList(req, res){
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
       
-        req.body[0].tokenTransfers.forEach(async (item, index) => {
-          if(item.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
+          if(req.body[0].tokenTransfers[0].mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
 
             const user = await prisma.wallet.findUnique({
               where:{walletAddress: item.toUserAccount},
@@ -210,9 +209,9 @@ async function login(req, res) {
               }
             })
       
-            myEmitter.emit('sendKizz', [{ toWallet: item.toUserAccount, amount:item.tokenAmount, user: user.ID}]);
+            myEmitter.emit('sendKizz', [{ toWallet: req.body[0].tokenTransfers[0].toUserAccount, amount:req.body[0].tokenTransfers[0].tokenAmount, user: user.ID}]);
           }
-        });
+       
     } else {
         console.error('Token Transfer is not available or not an array');
     }
