@@ -5,6 +5,7 @@ const Joi = require("joi");
 const e = require("cors");
 const axios = require("axios")
 const { getAssociatedTokenAddressSync } = require('@solana/spl-token');
+const myEmitter = new EventEmitter();
 const {
   Connection,
   Keypair,
