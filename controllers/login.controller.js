@@ -211,8 +211,7 @@ async function login(req, res) {
             })
 
             if(user){
-              myEmitter.emit('sendKizz', [{ toWallet: req.body[0].tokenTransfers[0].toUserAccount, amount:req.body[0].tokenTransfers[0].tokenAmount, user: user.ID}]);
-
+              myEmitter.emit('sendKizz', [{ toWallet: req.body[0].tokenTransfers[0].toUserAccount, amount:req.body[0].tokenTransfers[0].tokenAmount, user: user.user.ID}]);
             }
       
           } 
