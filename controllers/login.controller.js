@@ -169,12 +169,13 @@ async function login(req, res) {
   async function getList(req, res){
     console.log(req.body)
 
-    console.log(JSON.stringify(req.body.accountData, null, 2));
-    console.log(JSON.stringify(req.body.tokenTransfers, null, 2));
-    req.body.accountData.forEach((obj, index) => {
-      console.log(`Object ${index}:`, JSON.stringify(obj, null, 2));
-  });
-
+    if (req.body && Array.isArray(req.body.accountData)) {
+      req.body.accountData.forEach((item, index) => {
+          console.log(`Item ${index}:`, JSON.stringify(item, null, 2));
+      });
+  } else {
+      console.error('accountData is not available or not an array');
+  }
     return res.status(200).json({error: 'sdsdadasdsa'})
 
 
