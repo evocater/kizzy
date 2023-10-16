@@ -730,7 +730,6 @@ async function getUserMatch(req, res){
     let type;
     let result;
     let payout = 0
-    let match = {}
 
     if(matches && matches?.match?.type == 'over'){
       type = matches.match.over 
@@ -743,9 +742,6 @@ async function getUserMatch(req, res){
     }else{
       payout = 0
     }
-
-    
-    
 
     return res.status(200).json({match:matches?.match, payout:payout})
    
