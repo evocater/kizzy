@@ -27,7 +27,7 @@ const crypto = require('crypto');
 
 
 const algorithm = 'aes-256-cbc'; // AES encryption in CBC mode
-const key = process.env.KEY; // AES-256 uses 256-bit (32-byte) keys
+const key = Buffer.from(process.env.KEY, 'hex'); // AES-256 uses 256-bit (32-byte) keys
 const iv = crypto.randomBytes(16);  // AES block size is 128 bits (16 bytes)
 
 console.log(key.toString('hex'))
