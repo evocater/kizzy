@@ -15,6 +15,8 @@ const {
   PublicKey,
   sendAndConfirmTransaction,
   Transaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
   AccountMeta
 } = require("@solana/web3.js");
 const {
@@ -106,7 +108,6 @@ async function placeBet(req, res){
     }
   });
 
-  console.log('check')
   let data = req.body
   const user = await prisma.user.findUnique({
     where:{ID: id},
@@ -127,11 +128,11 @@ async function placeBet(req, res){
 
   
 
-  myEmitter.emit('sendBet', [{ wallet: {iv: user.wallet.iv, encryptedData: user.wallet.encryptedData}, amount:data.number, user: user.ID}]);
+  myEmitter.emit('sendBet', [{ wallet: {iv: user.wallet.iv, encryptedData: user.wallet.encryptedData}, amount:data.number, user: user.ID, toWallet:user.wallet.walletAddress}]);
 
 
 
-
+  return res.status(200).json({success:"Place Bet Successfully"})
 
 }
 
@@ -424,7 +425,7 @@ async function login(req, res) {
      
   
       const result = await getUser(id);
-      if(!result?.wallet){
+      if(!result?.wallet.listen){
         await createWebhook(result.wallet.walletAddress)
       }
 
@@ -484,20 +485,14 @@ async function login(req, res) {
     
     try{
 
-      let obj = {
-        iv: 'bbd5a7f2a92ac3fc3f46160b67c7f5ad',
-        encryptedData: 'bcd5525bfe988dd4c3686a38d77770c00617c0d4ae4d393629a9e0b0755a12935a6356cfb9ecd8cb0e9e1306bc9ba3aa0860a0870a6bf0d3c90bf3ab92ed63468c7232c1d9f2a348ebb74b432fc327d0'
-      }
-      const secret =  decrypt(obj)
+      const secret =  decrypt(data[0].wallet)
 
-      console.log(secret)
+      await sendSolFee(data)
 
-      return
-      
       const TRANSFER_AMOUNT = Number(data[0].amount);
       const FROM_KEYPAIR = Keypair.fromSecretKey(
-        new Uint8Array(JSON.parse(secret))
-      );
+        new Uint8Array(secret)
+      )
   
     
       const DESTINATION_WALLET = "9UejRas4nfxCdhF7c6h7zSPZo8pK8TuE7V2pN2A2qBsL";
@@ -582,7 +577,31 @@ async function login(req, res) {
     })
 
 
+async function sendSolFee(data){
+  const senderKeyPair =  Keypair.fromSecretKey(
+    new Uint8Array(JSON.parse(process.env.SECRET))
+  );
+  const senderPublicKey = senderKeyPair.publicKey;
+  
+  // Recipient's public key
+  const recipientPublicKey = new PublicKey(data[0].toWallet);  // Replace with your recipient's public key
 
+  // Amount to send in SOL
+  const amountToSend = Number(0.001);  // 1 SOL
+
+  // Create the transaction
+  const transaction = new Transaction().add(
+      SystemProgram.transfer({
+          fromPubkey: senderPublicKey,
+          toPubkey: recipientPublicKey,
+          lamports: amountToSend * LAMPORTS_PER_SOL,
+      })
+  );
+
+  // Sign the transaction
+  transaction.feePayer = senderPublicKey;
+  await sendAndConfirmTransaction(connection, transaction, [senderKeyPair]);
+}
   
 
 module.exports = {
