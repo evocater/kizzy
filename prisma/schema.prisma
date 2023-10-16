@@ -44,11 +44,20 @@ model Log {
   updatedAt DateTime @updatedAt
   eventID  String?
   user      User     @relation(fields: [userID], references: [ID])
+  matchID   Int?
+  match     Match?    @relation(fields: [matchID], references: [ID])
 
   @@index([userID])
 }
 
-
+model Match{
+  ID        Int      @id @default(autoincrement())
+  over      Decimal? @db.Decimal(10, 2)
+  under     Decimal? @db.Decimal(10, 2)
+  total     Decimal? @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  logs      Log[]
+}
 
 
 

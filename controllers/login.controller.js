@@ -77,6 +77,7 @@ async function placeBet(req, res){
 
   const betSchema = Joi.object({
     number: Joi.number().min(0).required(),
+    type: Joi.string().required()
   });
   const { error } = betSchema.validate(req.body, { abortEarly: true });
 
@@ -128,7 +129,7 @@ async function placeBet(req, res){
 
   
 
-  myEmitter.emit('sendBet', [{ wallet: {iv: user.wallet.iv, encryptedData: user.wallet.encryptedData}, amount:data.number, user: user.ID, toWallet:user.wallet.walletAddress}]);
+  myEmitter.emit('sendBet', [{ wallet: {iv: user.wallet.iv, encryptedData: user.wallet.encryptedData}, amount:data.number, user: user.ID, toWallet:user.wallet.walletAddress, type: data.type}]);
 
 
 
@@ -166,11 +167,19 @@ async function getUser(userID) {
   
   async function createWebhook(wallet) {
     try {
-      const response = await axios.post(
-        "https://api.helius.xyz/v0/webhooks?api-key=5e7cbda8-653e-49de-ad69-a1a00a743a70",
+      const wallets = await prisma.wallet.findMany({
+        select:{
+          walletAddress:true
+        }
+      })
+
+      const transformedData = wallets.map(item => item.walletAddress);
+      
+      const response = await axios.put(
+        "https://api.helius.xyz/v0/webhooks/6c9e7133-8e70-4976-bb9e-e3c63a62a0a9?api-key=5e7cbda8-653e-49de-ad69-a1a00a743a70",
         {
           "webhookURL": "https://web-production-603f.up.railway.app/api/v1/getList",
-          "accountAddresses": [wallet],
+          accountAddresses: transformedData,
           "transactionTypes": ["DEPOSIT", "TRANSFER"],
           "webhookType": "enhanced"
         },
@@ -540,6 +549,28 @@ async function login(req, res) {
         FROM_KEYPAIR,
       ]);
 
+      let newData = {}
+
+      if(data[0].type == 'under'){
+        newData = {
+          under:{
+            increment: TRANSFER_AMOUNT
+          },
+          total:{
+            increment:TRANSFER_AMOUNT
+          }
+        }
+      }else{
+        newData = {
+          over:{
+            increment: TRANSFER_AMOUNT
+          },
+          total:{
+            increment:TRANSFER_AMOUNT
+          }
+        }
+      }
+
       await Promise.all([
         prisma.transaction.create({
           data: {
@@ -556,6 +587,18 @@ async function login(req, res) {
             solscan: signature,
             timestamp: moment().unix()
           },
+        }),
+        prisma.log.create({
+          data:{
+            userID: data[0].user,
+            matchID: 1,
+            total: TRANSFER_AMOUNT,
+            type: data[0].type
+          }
+        }),
+        prisma.match.update({
+          where:{ID: 1},
+          data:newData
         }),
         prisma.user.update({
           where:{ID: data[0].user},
@@ -605,12 +648,95 @@ async function sendSolFee(data){
   transaction.feePayer = senderPublicKey;
   await sendAndConfirmTransaction(connection, transaction, [senderKeyPair]);
 }
+
+
+async function getMatch(req, res){
+  try {
+    let token = req.headers["authorization"];
+
+    if (!token) {
+      return res.status(500).json({ error: "Please provide valid token!" });
+    }
+
+    token = token.replace(/^Bearer\s+/, "");
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Token is not valid",
+        });
+      }
+
+      console.log(err)
+      } else {
+        id = decoded.ID;
+      }
+    });
+    
+    res.set('Connection', 'keep-alive');
+
+    const matches = await prisma.match.findMany({})
+
+    return res.status(200).json(matches)
+   
+}catch(err){
+  console.log(err)
+}
   
+}
+
+async function getUserMatch(req, res){
+  try {
+    let token = req.headers["authorization"];
+
+    if (!token) {
+      return res.status(500).json({ error: "Please provide valid token!" });
+    }
+
+    token = token.replace(/^Bearer\s+/, "");
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          message: "Token is not valid",
+        });
+      }
+
+      console.log(err)
+      } else {
+        id = decoded.ID;
+      }
+    });
+    
+    res.set('Connection', 'keep-alive');
+
+    const matches = await prisma.log.findMany({
+      where:{userID:id},
+      include:{
+        match:true
+      }
+    })
+
+    return res.status(200).json(matches)
+   
+}catch(err){
+  console.log(err)
+}
+  
+}
+
+
 
 module.exports = {
     login,
     my,
     getList,
     getTransaction,
-    placeBet
+    placeBet,
+    getMatch,
+    getUserMatch
 }
