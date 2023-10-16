@@ -1,3 +1,4 @@
+require('dotenv').config()
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require(`@prisma/client`);
 const prisma = new PrismaClient();
@@ -26,8 +27,10 @@ const crypto = require('crypto');
 
 
 const algorithm = 'aes-256-cbc'; // AES encryption in CBC mode
-const key = crypto.randomBytes(32); // AES-256 uses 256-bit (32-byte) keys
+const key = process.env.KEY; // AES-256 uses 256-bit (32-byte) keys
 const iv = crypto.randomBytes(16);  // AES block size is 128 bits (16 bytes)
+
+console.log(key.toString('hex'))
 
 // Function to encrypt data
 function encrypt(data) {
@@ -65,6 +68,71 @@ async function getTokenBalanceSpl(connection, wallet) {
   }
 
  
+}
+
+
+async function placeBet(req, res){
+
+  const betSchema = Joi.object({
+    number: Joi.number().min(0).required(),
+  });
+  const { error } = betSchema.validate(req.body, { abortEarly: true });
+
+  if (error) {
+    console.log(error)
+    return res.status(500).json({ error: "Invalid Login Request" });
+  }
+
+  let token = req.headers["authorization"];
+  
+  if (!token) {
+    return res.status(500).json({ error: "Please provide valid token!" });
+  }
+
+  token = token.replace(/^Bearer\s+/, "");
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      if (!res.headersSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Token is not valid",
+      });
+    }
+
+    console.log(err)
+    } else {
+      id = decoded.ID;
+    }
+  });
+
+  console.log('check')
+  let data = req.body
+  const user = await prisma.user.findUnique({
+    where:{ID: id},
+    include:{
+      wallet:true
+    }
+  })
+
+  console.log(user)
+
+  if(!user){
+    return res.status(200).json({error: "User not found"})
+  }
+
+  if(Number(user.balance) < Number(data.number)){
+    return res.status(200).json({error: "User doesnt have enough KIZZ"})
+  }
+
+  
+
+  myEmitter.emit('sendBet', [{ wallet: {iv: user.wallet.iv, encryptedData: user.wallet.encryptedData}, amount:data.number, user: user.ID}]);
+
+
+
+
+
 }
 
 
@@ -149,7 +217,7 @@ async function login(req, res) {
       let keypair = Keypair.generate();
 
       const encrypted = encrypt(keypair.secretKey);
-      /* const decrypted = decrypt(encrypted); */
+      const decrypted = decrypt(encrypted);
 
 
       const user = await prisma.user.upsert({
@@ -277,22 +345,34 @@ async function login(req, res) {
       FROM_KEYPAIR,
     ]);
 
-    await prisma.transaction.create({
-      data: {
-        user: {
-          connect: {
-            ID: data[0].user, // connect to existing user by ID
+    await Promise.all([
+      prisma.transaction.create({
+        data: {
+          user: {
+            connect: {
+              ID: data[0].user, // connect to existing user by ID
+            },
           },
+  
+          total: TRANSFER_AMOUNT,
+          wallet: data[0].toWallet,
+          type: "Deposit",
+          updatedAt: new Date(),
+          solscan: signature,
+          timestamp: moment().unix()
         },
+      }),
+      prisma.user.update({
+        where:{ID: data[0].user},
+        data:{
+          balance: {
+            increment:TRANSFER_AMOUNT
+          }
+        }
+      })
+    ])
 
-        total: TRANSFER_AMOUNT,
-        wallet: data[0].toWallet,
-        type: "Deposit",
-        updatedAt: new Date(),
-        solscan: signature,
-        timestamp: moment().unix()
-      },
-    })
+    
 
     console.log(
       "\x1b[32m", //Green Text
@@ -303,6 +383,9 @@ async function login(req, res) {
       console.log(err)
     }
   })
+
+  
+ 
 
   async function getNumberDecimals(mintAddress) {
   const info = await connection.getParsedAccountInfo(
@@ -341,7 +424,7 @@ async function login(req, res) {
      
   
       const result = await getUser(id);
-      if(!result.wallet.listen){
+      if(!result?.wallet){
         await createWebhook(result.wallet.walletAddress)
       }
 
@@ -397,7 +480,106 @@ async function login(req, res) {
     }
   }
 
+  myEmitter.on("sendBet", async (data) => {
+    
+    try{
 
+      let obj = {
+        iv: 'bbd5a7f2a92ac3fc3f46160b67c7f5ad',
+        encryptedData: 'bcd5525bfe988dd4c3686a38d77770c00617c0d4ae4d393629a9e0b0755a12935a6356cfb9ecd8cb0e9e1306bc9ba3aa0860a0870a6bf0d3c90bf3ab92ed63468c7232c1d9f2a348ebb74b432fc327d0'
+      }
+      const secret =  decrypt(obj)
+
+      console.log(secret)
+
+      return
+      
+      const TRANSFER_AMOUNT = Number(data[0].amount);
+      const FROM_KEYPAIR = Keypair.fromSecretKey(
+        new Uint8Array(JSON.parse(secret))
+      );
+  
+    
+      const DESTINATION_WALLET = "9UejRas4nfxCdhF7c6h7zSPZo8pK8TuE7V2pN2A2qBsL";
+      const MINT_ADDRESS = "B5mAAXCVYxRMoLEHG55XSqFu5bUcUFwM2sPcjf1fZTU7";
+  
+     
+    
+      console.log(`Setting Up Transaction check Token Account`);
+      let sourceAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        FROM_KEYPAIR,
+        new PublicKey(MINT_ADDRESS),
+        FROM_KEYPAIR.publicKey
+      );
+      console.log(` Source Account: ${sourceAccount.address.toString()}`);
+    
+      console.log(` Getting Destination Token Account`);
+      let destinationAccount = await getOrCreateAssociatedTokenAccount(
+        connection,
+        FROM_KEYPAIR,
+        new PublicKey(MINT_ADDRESS),
+        new PublicKey(DESTINATION_WALLET)
+      );
+      console.log(` Destination Account: ${destinationAccount.address.toString()}`);
+    
+      const numberDecimals = await getNumberDecimals(MINT_ADDRESS);
+      console.log(`Number of Decimals: ${numberDecimals}`);
+    
+      const tx = new Transaction();
+      tx.add(
+        createTransferInstruction(
+          sourceAccount.address,
+          destinationAccount.address,
+          FROM_KEYPAIR.publicKey,
+          TRANSFER_AMOUNT * Math.pow(10, numberDecimals)
+        )
+      );
+    
+      const latestBlockHash = await connection.getLatestBlockhash("confirmed");
+      tx.recentBlockhash = await latestBlockHash.blockhash;
+      const signature = await sendAndConfirmTransaction(connection, tx, [
+        FROM_KEYPAIR,
+      ]);
+
+      await Promise.all([
+        prisma.transaction.create({
+          data: {
+            user: {
+              connect: {
+                ID: data[0].user, // connect to existing user by ID
+              },
+            },
+    
+            total: TRANSFER_AMOUNT,
+            wallet: data[0].toWallet,
+            type: "Bet",
+            updatedAt: new Date(),
+            solscan: signature,
+            timestamp: moment().unix()
+          },
+        }),
+        prisma.user.update({
+          where:{ID: data[0].user},
+          data:{
+            balance:{
+              decrement:TRANSFER_AMOUNT
+            }
+          }
+        })
+      ])
+  
+      
+  
+      console.log(
+        "\x1b[32m", //Green Text
+        `   Transaction Success!`,
+        `\n    https://solscan.io/tx/${signature}`
+      );
+      }catch(err){
+        console.log(err)
+      }
+    })
 
 
 
@@ -407,5 +589,6 @@ module.exports = {
     login,
     my,
     getList,
-    getTransaction
+    getTransaction,
+    placeBet
 }

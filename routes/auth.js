@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { login, my, getList, getTransaction} = require("../controllers/login.controller");
+const { login, my, getList, getTransaction, placeBet} = require("../controllers/login.controller");
 const apicache = require("apicache");
 let cache = apicache.middleware;
 const path = require("path");
@@ -11,7 +11,7 @@ router.use(helmet())
 
 router.post("/login", login);
 
-
+router.post("/placebet", placeBet);
 router.post("/getList",getList)
 
 
