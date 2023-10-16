@@ -266,7 +266,7 @@ async function login(req, res) {
     if (req.body && req.body[0] && Array.isArray(req.body[0].tokenTransfers)) {
       
       
-          if(req.body[0].tokenTransfers[0].mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
+          if(req.body[0]?.tokenTransfers[0]?.mint == "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"){
 
             const user = await prisma.wallet.findUnique({
               where:{walletAddress: req.body[0].tokenTransfers[0].toUserAccount},
@@ -471,7 +471,10 @@ async function login(req, res) {
 
 
       const transactions = await prisma.transaction.findMany({
-        where:{userID: id}
+        where:{userID: id},
+        orderBy:{
+          "ID": "desc"
+        }
       })
 
       return res.status(200).json(transactions)
