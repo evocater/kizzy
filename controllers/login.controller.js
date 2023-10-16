@@ -174,7 +174,7 @@ async function getUser(userID) {
       })
 
       const transformedData = wallets.map(item => item.walletAddress);
-      
+
       const response = await axios.put(
         "https://api.helius.xyz/v0/webhooks/6c9e7133-8e70-4976-bb9e-e3c63a62a0a9?api-key=5e7cbda8-653e-49de-ad69-a1a00a743a70",
         {
@@ -712,16 +712,42 @@ async function getUserMatch(req, res){
       }
     });
     
-    res.set('Connection', 'keep-alive');
 
-    const matches = await prisma.log.findMany({
+    const matches = await prisma.log.findFirst({
       where:{userID:id},
       include:{
         match:true
       }
     })
 
-    return res.status(200).json(matches)
+    const logsCount = await prisma.log.aggregate({
+      where:{userID: id},
+      _sum:{
+        total:true
+      }
+    })
+
+    let type;
+    let result;
+    let payout = 0
+    let match = {}
+
+    if(matches && matches?.match?.type == 'over'){
+      type = matches.match.over 
+      result = matches.match.under
+      payout = (Number(logsCount._sum.total)/Number(type)) * Number(result)
+    }else if(matches && matches?.match?.type == 'under'){
+      type = matches.match.under
+      result = matches.match.over
+      payout = (Number(logsCount._sum.total)/Number(type)) * Number(result)
+    }else{
+      payout = 0
+    }
+
+    
+    
+
+    return res.status(200).json({match:matches?.match, payout:payout})
    
 }catch(err){
   console.log(err)
